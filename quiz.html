@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>คุณเหมาะกับสายไหน?</title>
+<style>
+:root{
+  --bg:#12101a; --card:#1c1930; --accent:#a78bfa; --accent2:#f472b6;
+  --text:#f1eefc; --sub:#b3abcf; --border:#33305a;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  box-sizing:border-box;
+}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; min-height:100%; background:var(--bg); color:var(--text);
+  font-family:'Sarabun','Segoe UI',sans-serif;
+  display:flex; justify-content:center; padding:24px 14px;
+}
+.wrap{width:100%; max-width:560px;}
+h1{font-size:1.4rem; text-align:center; margin:0 0 4px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text; background-clip:text; color:transparent;}
+.sub{text-align:center; color:var(--sub); font-size:.85rem; margin-bottom:20px;}
+.bar{height:6px; background:var(--border); border-radius:4px; overflow:hidden; margin-bottom:18px;}
+.bar>div{height:100%; background:linear-gradient(90deg,var(--accent),var(--accent2)); transition:width .3s;}
+.card{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; margin-bottom:14px;}
+.qnum{color:var(--accent); font-weight:700; font-size:.8rem; margin-bottom:6px;}
+.qtext{font-size:1.05rem; margin-bottom:14px; line-height:1.5;}
+.opt{display:block; width:100%; text-align:left; background:#252140; border:1px solid var(--border);
+  color:var(--text); padding:12px 14px; border-radius:10px; margin-bottom:8px; cursor:pointer;
+  font-size:.95rem; line-height:1.4; transition:.15s;}
+.opt:hover{border-color:var(--accent);}
+.opt.sel{border-color:var(--accent2); background:#3a1f3f;}
+.nav{display:flex; justify-content:space-between; margin-top:6px;}
+button.nav-btn{background:none; border:1px solid var(--border); color:var(--sub); padding:10px 18px;
+  border-radius:10px; cursor:pointer; font-size:.9rem;}
+button.nav-btn:disabled{opacity:.35; cursor:default;}
+button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2)); color:#160f22; border:none;
+  font-weight:700;}
+#result{display:none; text-align:center;}
+.emoji{font-size:4rem; margin-bottom:6px;}
+.rname{font-size:1.5rem; font-weight:700; margin-bottom:6px;}
+.rdesc{color:var(--sub); font-size:.95rem; margin-bottom:18px; line-height:1.6;}
+.scores{text-align:left; font-size:.85rem; color:var(--sub); margin-bottom:18px;}
+.scores div{display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border);}
+#septaWrap{margin:6px auto 20px; max-width:340px;}
+.axisLabel{font-size:11px; fill:var(--sub); font-weight:700;}
+.axisLabel.top{fill:var(--accent2);}
+#quizArea{display:block;}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){--bg:#f6f5fb; --card:#ffffff; --text:#221d33; --sub:#6b6484; --border:#e2def0;}
+  :root:not([data-theme="dark"]) .opt{background:#f0edfb; color:#221d33;}
+  :root:not([data-theme="dark"]) .opt.sel{background:#f9e6f4;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>🔮 คุณเหมาะกับสายไหน?</h1>
+<div class="sub">ควิซจอมเวทย์ 7 สาย — ตอบตามสัญชาตญาณ</div>
+<div class="bar"><div id="prog" style="width:5%"></div></div>
+
+<div id="quizArea">
+  <div class="card">
+    <div class="qnum" id="qnum">ข้อ 1 / 20</div>
+    <div class="qtext" id="qtext"></div>
+    <div id="opts"></div>
+  </div>
+  <div class="nav">
+    <button class="nav-btn" id="prevBtn">ย้อนกลับ</button>
+    <button class="nav-btn primary" id="nextBtn">ถัดไป</button>
+  </div>
+</div>
+
+<div id="result">
+  <div class="emoji" id="rEmoji"></div>
+  <div class="rname" id="rName"></div>
+  <div class="rdesc" id="rDesc"></div>
+  <div id="septaWrap"></div>
+  <div class="scores" id="rScores"></div>
+  <button class="nav-btn primary" style="width:100%" onclick="restart()">ทำอีกครั้ง</button>
+</div>
+</div>
+
+<script>
+const CLASS_INFO = {
+  DRU:{e:'🌿',n:'ผู้เสพธรรมชาติ',d:'คุณผูกพันกับโลกธรรมชาติ สงบ สังเกตไว ปรับตัวเก่ง และเชื่อในการอยู่ร่วมกับสิ่งรอบตัวมากกว่าการเอาชนะมัน'},
+  WIZ:{e:'📖',n:'ผู้สำเร็จตำรา',d:'คุณเชื่อในความรู้และเหตุผล ศึกษาให้รอบด้านก่อนลงมือ และมองว่าความเข้าใจคือกุญแจไขทุกปัญหา'},
+  DRA:{e:'🐉',n:'ผู้กลืนกินมังกร',d:'คุณกล้าเสี่ยง ท้าทายขีดจำกัด และไม่กลัวที่จะเผชิญหน้ากับสิ่งที่ยิ่งใหญ่กว่าตัวเอง'},
+  NEC:{e:'💀',n:'ผู้รับใช้มนต์ดำ',d:'คุณสนใจสิ่งที่ซ่อนอยู่เบื้องหลัง ไม่กลัวความมืดหรือสิ่งต้องห้าม และมองเห็นคุณค่าในสิ่งที่คนอื่นหลีกเลี่ยง'},
+  CLE:{e:'✨',n:'ผู้รักษาศรัทธา',d:'คุณห่วงใยผู้อื่นเป็นอันดับแรก พร้อมช่วยเหลือและปกป้องคนรอบข้าง แม้ต้องเหนื่อยแทนใครก็ตาม'},
+  WAR:{e:'🕯️',n:'ผู้ใช้งานความตาย',d:'คุณลงมือทำจริง เผชิญปัญหาตรงๆ ด้วยพลังและความกล้า ไม่หลบเลี่ยงสิ่งที่ต้องเผชิญ'},
+  ANT:{e:'🚫',n:'ผู้ปฏิเสธเวทมนต์',d:'คุณพึ่งพาตัวเองเป็นหลัก ไม่ยอมถูกควบคุมโดยพลังของใคร และตั้งคำถามกับสิ่งที่ดูเหมือนจำเป็นเสมอ'}
+};
+const KEYS = ["WAR","DRU","WIZ","CLE","DRA","NEC","ANT"];
+const KM_STD = ["WIZ","NEC","DRU","CLE","WAR","DRA","ANT"];
+const keyMaps = [
+  ["WAR","DRU","WIZ","CLE","DRA","NEC","ANT"],
+  ["DRU","WIZ","NEC","CLE","ANT","DRA","WAR"],
+  ["WAR","WIZ","DRU","CLE","NEC","DRA","ANT"],
+  ["WIZ","NEC","DRU","CLE","WAR","DRA","ANT"],
+  ["NEC","WIZ","DRU","CLE","WAR","DRA","ANT"],
+  KM_STD, KM_STD,
+  ["CLE","NEC","DRU","WIZ","WAR","DRA","ANT"],
+  KM_STD, KM_STD, KM_STD, KM_STD, KM_STD, KM_STD, KM_STD, KM_STD, KM_STD, KM_STD, KM_STD, KM_STD
+];
+const questions = [
+["หากพบสิ่งของลึกลับที่ไม่มีใครรู้ว่ามันใช้ทำอะไร คุณจะ…",["ทดลองใช้ด้วยตัวเอง","เก็บไว้ก่อนแล้วสังเกตการเปลี่ยนแปลง","หาข้อมูลเกี่ยวกับมันจากแหล่งต่าง ๆ","ตรวจสอบว่ามันอาจเป็นอันตรายต่อใครหรือไม่","ลองดูว่ามันสามารถทำอะไรได้มากกว่านี้อีกมั้ย?","หลีกเลี่ยงการใช้จนกว่าจะรู้ว่ามันคืออะไร","ตั้งคำถามว่าจำเป็นต้องใช้มันจริง ๆ หรือไม่"]],
+["ถ้าต้องเลือกสถานที่สำหรับใช้ชีวิต คุณจะเลือกที่ไหน?",["สถานที่เงียบสงบและห่างไกลผู้คน","เมืองที่เต็มไปด้วยสิ่งใหม่ ๆ","สถานที่ซึ่งมีเรื่องราวเก่าแก่ซ่อนอยู่","สถานที่ที่สามารถดูแลคนรอบข้างได้สะดวก","สถานที่ที่ไม่มีใครสามารถควบคุมคุณได้","สถานที่ที่มีสิ่งท้าทายให้พิสูจน์ตัวเอง","สถานที่ที่ไม่ต้องพึ่งพาใครหรือสิ่งใด"]],
+["เมื่อเจอปัญหาที่ไม่มีวิธีแก้ชัดเจน คุณมักจะ…",["ทดลองวิธีที่ไม่เคยลอง","ค้นคว้าจนกว่าจะพบคำตอบ","สังเกตสิ่งรอบตัวแล้วปรับตัวตามสถานการณ์","ขอความร่วมมือจากคนอื่น","ยอมแลกบางอย่างเพื่อให้ได้ผลลัพธ์","เผชิญหน้ากับปัญหาโดยตรง","หาวิธีทำให้ปัญหานั้นหมดอำนาจไปเอง"]],
+["ถ้าคุณมีโอกาสเรียนรู้เรื่องหนึ่งจนเชี่ยวชาญ คุณจะเลือก…",["ศาสตร์ที่คนส่วนใหญ่ยังไม่เข้าใจ","วิธีเอาตัวรอดจากสถานการณ์ต่าง ๆ","ความลับของอดีต","วิธีช่วยเหลือและปกป้องผู้อื่น","พลังมหาศาลแต่มีข้อแลกเปลี่ยน","วิธีทำให้ร่างกายและจิตใจแข็งแกร่งขึ้น","วิธีรับมือกับผู้อื่น"]],
+["คุณได้รับคำเตือนว่า “อย่าเปิดประตูบานนี้” คุณจะ…",["ถามว่าทำไมถึงห้ามเปิด","พยายามหาข้อมูลเกี่ยวกับสิ่งที่อยู่ข้างใน","สังเกตบริเวณรอบ ๆ ก่อน","คิดว่าการเปิดอาจส่งผลต่อใครบ้าง","เปิด หากสิ่งที่อยู่ข้างในมีค่าพอ","เปิดเพื่อพิสูจน์ว่าคำเตือนนั้นจริงหรือไม่","เดินผ่านไป เพราะไม่เห็นเหตุผลที่ต้องเปิด"]],
+["ถ้าต้องมีสิ่งหนึ่งติดตัวตลอดเวลา คุณจะเลือก…",["หนังสือหรือบันทึก","เครื่องรางเก่าแก่","ของที่หาได้จากสถานที่ต่าง ๆ","อุปกรณ์อำนวยความสะดวก","สิ่งของที่สามารถป้องกันตัวและคนอื่นได้","เครื่องดื่มช่วยเพิ่มประสิทธิภาพของตัวเอง","สิ่งที่คิดว่าเป็นจุดอ่อนของผู้อื่น"]],
+["ข้อใดใกล้เคียงกับความคิดของคุณมากที่สุด?",["“ในโลกนี้ยังมีสิ่งใดที่เรายังไม่รู้อีกมั้ย?”","“สิ่งของเมื่อสลายไป จะทิ้งสิ่งใหม่ไว้เสมอ”","“การฝืนสิ่งต่าง ๆ ไม่ใช่คำตอบเสมอไป”","“ชีวิตสุดจะวิไล ถ้าอ้าแขนด้วยจิตใจที่ดี”","“บางสิ่งต้องแลกด้วยบางสิ่ง”","“ถ้าอยากได้สิ่งที่ไม่มีใครมี ก็ต้องกล้าเสี่ยง”","“ไม่จำเป็นต้องมีพลังเหนือกว่าใครเพื่อเอาชนะ”"]],
+["หากเพื่อนของคุณทำผิดพลาดครั้งใหญ่ คุณจะ…",["ช่วยหาวิธีแก้ไข","พยายามทำความเข้าใจว่าอะไรเกิดขึ้น","ให้เขาเรียนรู้จากสิ่งที่เกิดขึ้น","อยู่ข้างเขาและช่วยรับมือกับผลที่ตามมา","เสนอทางออกที่รวดเร็ว แม้จะมีความเสี่ยง","ให้เขารับผิดชอบและเผชิญหน้ากับมัน","ไม่เข้าไปแก้แทน หากเขายังแก้ด้วยตัวเองได้"]],
+["หากคุณต้องเดินทางผ่านพื้นที่ที่ไม่คุ้นเคย สิ่งแรกที่คุณสนใจคือ…",["ข้อมูลและเส้นทาง","สิ่งผิดปกติที่เหนือธรรมชาติ","สภาพแวดล้อมรอบตัว","จุดที่ปลอดภัยสำหรับพัก","สิ่งที่อาจเป็นอุปสรรค","สิ่งที่อาจเป็นอันตราย","วิธีเดินทางโดยไม่ต้องพึ่งพาสิ่งใดมากเกินไป"]],
+["ถ้าคุณสามารถเปลี่ยนแปลงกฎข้อหนึ่งของโลกได้ คุณจะเลือก…",["ให้ความรู้เข้าถึงทุกคน","ให้สิ่งที่สูญเสียไปสามารถกลับมาได้","ให้ทุกสิ่งสามารถอยู่ร่วมกันได้อย่างสมดุล","ให้ผู้คนไม่ต้องทนทุกข์โดยไม่จำเป็น","ให้ทุกคนสามารถได้รับสิ่งที่ปรารถนา หากยอมจ่ายราคาที่เหมาะสม","ให้ขีดจำกัดของมนุษย์กว้างขึ้น","ให้ไม่มีใครสามารถบังคับผู้อื่นด้วยพลังของตัวเองได้"]],
+["คุณพบสิ่งมีชีวิตที่แข็งแกร่งมากกำลังบาดเจ็บ คุณจะ…",["ศึกษามันก่อนเพื่อหาวิธีช่วย","พยายามค้นหาว่ามันมาจากไหน","ปล่อยให้มันอยู่ในพื้นที่ที่เหมาะสม","เข้าไปช่วยทันทีหากทำได้","ช่วยเผื่อจะได้รังวัลตอบแทน","สนใจว่ามันแข็งแกร่งแค่ไหน","ไม่เข้าใกล้จนกว่าจะมั่นใจว่ามันไม่สามารถทำอันตรายใครได้"]],
+["ถ้าต้องเลือกวิธีเอาชนะคู่แข่ง คุณจะเลือก…",["ใช้ความรู้และการวางแผน","ใช้สิ่งที่คู่แข่งคาดไม่ถึง","ใช้พื้นที่และสภาพแวดล้อมให้เป็นประโยชน์","ทำให้ตัวเองและพวกพ้องปลอดภัยก่อน","ใช้วิธีที่ได้ผลที่สุด แม้จะมีต้นทุน","เอาชนะด้วยกำลังของตัวเอง","ตัดกำลังอีกฝ่ายก่อน"]],
+["สิ่งใดทำให้คุณรู้สึกว่า “นี่แหละ น่าสนใจ” มากที่สุด?",["ความรู้ที่ยังไม่มีคำตอบ","เรื่องราวที่ไม่มีใครสามารถอธิบายได้","สถานที่ที่มนุษย์แทบไม่เคยแตะต้อง","คนที่มีเรื่องราวและความสามารถแตกต่างจากคนทั่วไป","สิ่งที่มีพลังมหาศาลแต่ไม่มีใครกล้าแตะ","สิ่งที่ดูเหมือนจะเป็นไปไม่ได้สำหรับมนุษย์","สิ่งที่สามารถทำให้พลังของสิ่งอื่นไร้ผล"]],
+["ถ้าความสำเร็จครั้งหนึ่งของคุณต้องแลกด้วยบางอย่าง คุณจะ…",["ยอมเสียเวลาเพื่อเตรียมตัวให้พร้อม","ยอมปล่อยอดีตบางส่วนไว้ข้างหลัง","ยอมลดความสะดวกสบายของตัวเอง","ยอมเหนื่อยแทนคนอื่น","ยอมจ่ายราคาที่สูง หากผลลัพธ์คุ้มค่า","ยอมรับความเสี่ยงเพื่อก้าวข้ามขีดจำกัด","เลือกไม่ทำ หากราคาที่ต้องจ่ายสูงเกินไป"]],
+["เมื่อทุกคนในกลุ่มเห็นตรงกัน แต่คุณคิดต่าง คุณจะ…",["อธิบายเหตุผลของตัวเอง","ถามว่าพวกเขาอาจมองข้ามอะไรไปหรือไม่","รอดูสถานการณ์ก่อน","พยายามหาทางที่ทุกคนยอมรับได้","ทำในสิ่งที่คิดว่าจำเป็น แม้ไม่มีใครเห็นด้วย","พิสูจน์ด้วยการลงมือทำ","ไม่สนับสนุน หากรู้สึกว่าทุกคนกำลังพึ่งพาสิ่งเดียวกันมากเกินไป"]],
+["ถ้ามีประตูที่สามารถพาคุณไปยังสถานที่ใดก็ได้ คุณจะอยากไปที่ไหน?",["ห้องสมุดที่มีหนังสือทุกเล่มในโลก","สถานที่ที่ไม่มีใครเคยกลับออกมาเล่าเรื่อง","ดินแดนที่มนุษย์แทบไม่เคยเข้าไปถึง","สถานที่ที่ผู้คนต้องการความช่วยเหลือ","สถานที่ที่มีสิ่งต้องห้ามซ่อนอยู่","ดินแดนที่เต็มไปด้วยสิ่งมีชีวิตระดับตำนาน","สถานที่ที่ไม่มีพลังพิเศษใด ๆ ทำงานได้"]],
+["หากคุณได้รับพลังที่ไม่สามารถควบคุมได้ในตอนแรก คุณจะ…",["ศึกษาวิธีควบคุมมัน","พยายามทำความเข้าใจต้นกำเนิดของมัน","เรียนรู้ที่จะอยู่ร่วมกับมัน","ฝึกเพื่อไม่ให้มันสร้างอันตรายแก่คนอื่น","ทดลองขยายขีดจำกัดของมัน","ผลักตัวเองให้สามารถรับพลังนั้นได้","หาวิธีทำให้พลังนั้นอ่อนลงหรือหายไป"]],
+["เมื่อคุณต้องตัดสินใจเรื่องสำคัญ คุณมักเชื่อสิ่งใดมากที่สุด?",["ข้อมูลที่มีอยู่","สิ่งที่ซ่อนอยู่ใต้สิ่งที่เห็น","สัญชาตญาณและสิ่งรอบตัว","ผลกระทบต่อผู้คน","ความต้องการของตัวเอง","ความสามารถในการลงมือทำ","เหตุผลที่อยู่เบื้องหลังการตัดสินใจนั้น"]],
+["ถ้าคุณสามารถมีชื่อเสียงจากเรื่องหนึ่ง คุณอยากให้ผู้คนจดจำคุณว่า…",["คนที่รู้ในสิ่งที่คนอื่นไม่รู้","คนที่ค้นพบสิ่งที่ถูกลืม","คนที่เข้าใจโลกมากกว่าคนทั่วไป","คนที่ช่วยเหลือผู้คนมากมาย","คนที่กล้าทำสิ่งที่ไม่มีใครกล้าทำ","คนที่เอาชนะสิ่งที่ไม่มีใครเอาชนะได้","คนที่ไม่เคยต้องพึ่งพาพลังของใคร"]],
+["สุดท้าย หากต้องเลือกเพียงหนึ่งประโยค คุณจะเลือก…",["“ความรู้คือกุญแจของทุกสิ่ง”","“สิ่งที่หายไปไม่ได้หมายความว่ามันไม่มีอยู่อีกต่อไป”","“จงเรียนรู้ที่จะอยู่ร่วมกับโลก ไม่ใช่เอาชนะมัน”","“พลังที่มีความหมายที่สุด คือพลังที่ช่วยให้คนอื่นยืนหยัดได้”","“หากสิ่งที่ต้องการมีราคาที่ต้องจ่าย ข้าก็พร้อมจะจ่าย”","“ข้าจะก้าวข้ามขีดจำกัดที่ไม่มีใครกล้าก้าวข้าม”","“ข้าไม่จำเป็นต้องมีพลัง หากพลังของเจ้าทำอะไรข้าไม่ได้”"]]
+];
+
+let cur = 0;
+const answers = new Array(20).fill(null); // stores ORIGINAL option index (0-6), independent of shuffle
+let optionOrder = []; // optionOrder[qi] = shuffled array of original indices, display order
+
+function shuffled(n){
+  const arr = Array.from({length:n},(_,i)=>i);
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+function newShuffle(){
+  optionOrder = questions.map(q=>shuffled(q[1].length));
+}
+
+function renderQ(){
+  const [qtext, opts] = questions[cur];
+  document.getElementById('qnum').textContent = `ข้อ ${cur+1} / 20`;
+  document.getElementById('qtext').textContent = qtext;
+  document.getElementById('prog').style.width = ((cur+1)/20*100)+'%';
+  const optsEl = document.getElementById('opts');
+  optsEl.innerHTML = '';
+  optionOrder[cur].forEach((origIdx,displayPos)=>{
+    const btn = document.createElement('button');
+    btn.className = 'opt'+(answers[cur]===origIdx?' sel':'');
+    btn.textContent = String.fromCharCode(65+displayPos)+'. '+opts[origIdx];
+    btn.onclick = ()=>{ answers[cur]=origIdx; renderQ(); };
+    optsEl.appendChild(btn);
+  });
+  document.getElementById('prevBtn').disabled = cur===0;
+  document.getElementById('nextBtn').textContent = cur===19 ? 'ดูผลลัพธ์' : 'ถัดไป';
+}
+
+document.getElementById('prevBtn').onclick = ()=>{ if(cur>0){cur--; renderQ();} };
+document.getElementById('nextBtn').onclick = ()=>{
+  if(answers[cur]===null){ alert('กรุณาเลือกคำตอบก่อนนะ'); return; }
+  if(cur<19){ cur++; renderQ(); } else { showResult(); }
+};
+
+function drawSeptagram(tally, top){
+  const N = 7, size = 320, cx = size/2, cy = size/2, R = 118;
+  const maxVal = Math.max(4, ...KEYS.map(k=>tally[k]));
+  const angle = i => -Math.PI/2 + i*(2*Math.PI/N);
+  const pt = (i,r) => [cx + r*Math.cos(angle(i)), cy + r*Math.sin(angle(i))];
+
+  // outer heptagon rings (guide lines)
+  let rings = '';
+  [0.33,0.66,1].forEach(f=>{
+    const p = Array.from({length:N},(_,i)=>pt(i,R*f).join(',')).join(' ');
+    rings += `<polygon points="${p}" fill="none" stroke="var(--border)" stroke-width="1"/>`;
+  });
+  // axis lines
+  let axes = '';
+  KEYS.forEach((k,i)=>{
+    const [x,y] = pt(i,R);
+    axes += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--border)" stroke-width="1"/>`;
+  });
+  // data heptagram: connect every point to make star (skip-2 pattern) + filled polygon
+  const dataPts = KEYS.map((k,i)=> pt(i, R * (tally[k]/maxVal)) );
+  const fillPoly = dataPts.map(p=>p.join(',')).join(' ');
+  // septagram star lines: connect each vertex to the one 2 steps away
+  let star = '';
+  for(let i=0;i<N;i++){
+    const a = dataPts[i], b = dataPts[(i+2)%N];
+    star += `<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="var(--accent2)" stroke-width="1.5" opacity="0.85"/>`;
+  }
+  // labels
+  let labels = '';
+  KEYS.forEach((k,i)=>{
+    const [x,y] = pt(i, R+26);
+    labels += `<text class="axisLabel${k===top?' top':''}" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle">${CLASS_INFO[k].e}</text>`;
+  });
+  // dots on data points
+  let dots = dataPts.map(([x,y],i)=>
+    `<circle cx="${x}" cy="${y}" r="${KEYS[i]===top?5:3}" fill="${KEYS[i]===top?'var(--accent2)':'var(--accent)'}"/>`
+  ).join('');
+
+  document.getElementById('septaWrap').innerHTML = `
+  <svg viewBox="0 0 ${size} ${size}" width="100%" height="auto">
+    ${rings}${axes}
+    <polygon points="${fillPoly}" fill="var(--accent)" fill-opacity="0.18" stroke="var(--accent)" stroke-width="2"/>
+    ${star}
+    ${dots}
+    ${labels}
+  </svg>`;
+}
+
+function showResult(){
+  const tally = {}; KEYS.forEach(k=>tally[k]=0);
+  answers.forEach((ans,qi)=>{ tally[keyMaps[qi][ans]]++; });
+  let top = KEYS[0];
+  KEYS.forEach(k=>{ if(tally[k]>tally[top]) top=k; });
+  const info = CLASS_INFO[top];
+  document.getElementById('rEmoji').textContent = info.e;
+  document.getElementById('rName').textContent = info.e+' '+info.n;
+  document.getElementById('rDesc').textContent = info.d;
+  drawSeptagram(tally, top);
+  const sorted = KEYS.slice().sort((a,b)=>tally[b]-tally[a]);
+  document.getElementById('rScores').innerHTML = sorted.map(k=>
+    `<div><span>${CLASS_INFO[k].e} ${CLASS_INFO[k].n}</span><span>${tally[k]}</span></div>`
+  ).join('');
+  document.getElementById('quizArea').style.display='none';
+  document.getElementById('result').style.display='block';
+}
+
+function restart(){
+  cur=0; answers.fill(null);
+  newShuffle();
+  document.getElementById('result').style.display='none';
+  document.getElementById('quizArea').style.display='block';
+  renderQ();
+}
+
+newShuffle();
+renderQ();
+</script>
+</body>
+</html>
